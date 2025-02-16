@@ -1,0 +1,140 @@
+### 회원가입 및 토큰 얻기
+# @name signup
+POST http://localhost:8000/auth/signup
+Content-Type: application/json
+
+{
+    "fullname": "Test User",
+    "email": "test12345@example.com",
+    "password": "testpassword123"
+}
+
+> {%
+    client.global.set("auth_token", response.body.access_token);
+%}
+
+### 1. 테스트용 게시판 생성
+# @name createBoard
+POST http://localhost:8000/boards
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Test Board123",
+    "public": true
+}
+
+> {%
+    client.global.set("board_id", response.body.id);
+%}
+
+### 2. 게시글 생성
+POST http://localhost:8000/posts
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "title": "First Post",
+    "content": "This is my first post content",
+    "board_id": {{board_id}}
+}
+
+> {%
+    client.global.set("post_id", response.body.id);
+%}
+
+### 3. 비공개 게시판 생성 및 게시글 작성
+# @name createPrivateBoard
+POST http://localhost:8000/boards
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Private Board123",
+    "public": false
+}
+
+> {%
+    client.global.set("private_board_id", response.body.id);
+%}
+
+### 4. 비공개 게시판에 게시글 작성
+POST http://localhost:8000/posts
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "title": "Private Post",
+    "content": "This is a post in private board",
+    "board_id": {{private_board_id}}
+}
+
+### 5. 게시글 목록 조회 (공개 게시판)
+GET http://localhost:8000/posts/board/{{board_id}}
+Authorization: Bearer {{auth_token}}
+
+### 6. 게시글 목록 조회 (페이지네이션)
+GET http://localhost:8000/posts/board/{{board_id}}?limit=5
+Authorization: Bearer {{auth_token}}
+
+> {%
+    console.log("Current auth_token:", client.global.get("auth_token"));
+    if (response.body.next_cursor) {
+        client.global.set("cursor", response.body.next_cursor);
+    }
+%}
+
+### 7. 커서 기반 페이지네이션
+GET http://localhost:8000/posts/board/{{board_id}}?cursor={{cursor}}&limit=5
+Authorization: Bearer {{auth_token}}
+
+### 8. 특정 게시글 조회
+GET http://localhost:8000/posts/{{post_id}}
+Authorization: Bearer {{auth_token}}
+
+### 9. 게시글 수정
+PUT http://localhost:8000/posts/{{post_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "title": "Updated Post Title",
+    "content": "This content has been updated"
+}
+
+### 10. 게시글 삭제
+DELETE http://localhost:8000/posts/{{post_id}}
+Authorization: Bearer {{auth_token}}
+
+### 11. 존재하지 않는 게시글 조회
+GET http://localhost:8000/posts/99999
+Authorization: Bearer {{auth_token}}
+
+### 12. 다른 사용자 계정 생성
+# @name signup2
+POST http://localhost:8000/auth/signup
+Content-Type: application/json
+
+{
+    "fullname": "Another User",
+    "email": "another123@example.com",
+    "password": "anotherpass123"
+}
+
+> {%
+    client.global.set("another_token", response.body.access_token);
+%}
+
+### 13. 다른 사용자가 게시글 수정 시도
+PUT http://localhost:8000/posts/{{post_id}}
+Authorization: Bearer {{another_token}}
+Content-Type: application/json
+
+{
+    "title": "Unauthorized Update",
+    "content": "This should fail"
+}
+
+### 14. 다른 사용자가 게시글 삭제 시도
+DELETE http://localhost:8000/posts/{{post_id}}
+Authorization: Bearer {{another_token}} 
