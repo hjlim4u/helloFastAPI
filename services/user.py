@@ -6,14 +6,12 @@ from redis import Redis
 from jose import jwt, JWTError
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
 import redis
 
 from models.user import User
 from schemas.user import UserCreate, UserLogin, Token
 from core.config import settings
 
-logger = logging.getLogger(__name__)
 
 class UserService:
     def __init__(self, db: AsyncSession, redis_client: Redis):
@@ -136,11 +134,9 @@ class UserService:
         """사용자 로그아웃 처리"""
         try:
             session_key = f"session:{session_id}"
-            logger.debug(f"Checking session key: {session_key}")
             
             # Redis 연결 확인
             if not self.redis_client.ping():
-                logger.error("Redis connection failed")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Session service unavailable"
@@ -148,18 +144,15 @@ class UserService:
             
             # 세션 존재 여부 확인
             if not self.redis_client.exists(session_key):
-                logger.warning(f"Session not found: {session_key}")
                 # 세션이 없어도 성공적으로 로그아웃 처리
                 return {"message": "Successfully logged out"}
             
             # 세션 삭제
             self.redis_client.delete(session_key)
-            logger.info(f"Successfully deleted session: {session_key}")
             
             return {"message": "Successfully logged out"}
             
         except redis.RedisError as e:
-            logger.error(f"Redis error: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Session service error"

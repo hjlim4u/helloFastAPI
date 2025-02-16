@@ -1,35 +1,27 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from typing import Optional, Tuple, List
-import logging
 
 from models.post import Post
 from models.board import Board
 from schemas.post import PostCreate, PostUpdate, PostResponse
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 class PostService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
     async def create_post(self, post_data: PostCreate, user_id: int) -> PostResponse:
-        logger.debug(f"Service: Creating post for user {user_id}")
         try:
             board = await Board.get_accessible_board(self.db, post_data.board_id, user_id)
             if not board:
-                logger.error(f"Board {post_data.board_id} not found or not accessible")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Board not found or not accessible"
                 )
             
             post = await Post.create_post(self.db, post_data, user_id, board)
-            logger.debug(f"Service: Post created successfully with id {post.id}")
             return PostResponse.model_validate(post)
         except Exception as e:
-            logger.error(f"Service: Error creating post: {str(e)}")
             raise
     
     async def update_post(self, post_id: int, post_data: PostUpdate, user_id: int) -> PostResponse:

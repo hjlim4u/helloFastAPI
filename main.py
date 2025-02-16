@@ -1,15 +1,8 @@
 from fastapi import FastAPI
 from routers import auth, board, post
 from core.database import create_tables
-import logging
 
 app = FastAPI()
-
-# 로깅 설정
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 
 @app.on_event("startup")
 async def startup_event():
